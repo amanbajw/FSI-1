@@ -1,123 +1,36 @@
-"""Feature engineers the insurance dataset."""
+"""Prepare feature for ML model training. Read from FeatureStore then save to S3 as CSV."""
 import sklearn
-from functools import partial
 
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
+            
+def main():
+    insurance_policy_query = insurance_policy_feature_group.athena_query()
 
-from sklearn.datasets import fetch_openml
-from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import PoissonRegressor
-from sklearn.linear_model import GammaRegressor
-from sklearn.linear_model import TweedieRegressor
-from sklearn.metrics import mean_tweedie_deviance
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import FunctionTransformer, OneHotEncoder
-from sklearn.preprocessing import StandardScaler, KBinsDiscretizer
+    insurance_policy_table = insurance_policy_query.table_name
 
-from sklearn.metrics import mean_absolute_error, mean_squared_error, auc
+    query_string = 'SELECT * FROM "'+insurance_policy_table+'"' #+insurance_policy_table
+    print('Running ' + query_string)
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-logger.addHandler(logging.StreamHandler())
+    # run Athena query. The output is loaded to a Pandas dataframe.
+    #dataset = pd.DataFrame()
+    insurance_policy_query.run(query_string=query_string, output_location='s3://'+default_s3_bucket_name+'/'+prefix+'/query_results/')
+    insurance_policy_query.wait()
+    dataset = insurance_policy_query.as_dataframe()
 
-def load_mtpl2(n_samples=100000):
-    """Fetch the French Motor Third-Party Liability Claims dataset.
+    # Prepare query results for training.
+    query_execution = insurance_policy_query.get_query_execution()
+    query_result = 's3://'+default_s3_bucket_name+'/'+prefix+'/query_results/'+query_execution['QueryExecution']['QueryExecutionId']+'.csv'
+    print(query_result)
 
-    Parameters
-    ----------
-    n_samples: int, default=100000
-      number of samples to select (for faster run time). Full dataset has
-      678013 samples.
-    """
-    # freMTPL2freq dataset from https://www.openml.org/d/41214
-    df_freq = fetch_openml(data_id=41214, as_frame=True)['data']
-    df_freq['IDpol'] = df_freq['IDpol'].astype(np.int)
-    df_freq.set_index('IDpol', inplace=True)
+    df_features = pd.read_csv(query_result)   
+    df_features.columns = feature_names +['PurePremium','Frequency','AvgClaimAmount','eventtime','write_time','api_invocation_time','is_deleted']
+    # Select useful columns for training with target column as the first.
+    dataset = df_features.iloc[:,np.r_[df_features.columns.get_loc('PurePremium'), 0:60]]
 
-    # freMTPL2sev dataset from https://www.openml.org/d/41215
-    df_sev = fetch_openml(data_id=41215, as_frame=True)['data']
+    # Write to csv in S3 without headers and index column.
+    dataset.to_csv('dataset.csv', header=False, index=False)
+    s3_client.upload_file('dataset.csv', default_s3_bucket_name, prefix+'/training_input/dataset.csv')
+    dataset_uri_prefix = 's3://'+default_s3_bucket_name+'/'+prefix+'/training_input/';
 
-    # sum ClaimAmount over identical IDs
-    df_sev = df_sev.groupby('IDpol').sum()
-
-    df = df_freq.join(df_sev, how="left")
-    df["ClaimAmount"].fillna(0, inplace=True)
-
-    # unquote string fields
-    for column_name in df.columns[df.dtypes.values == np.object]:
-        df[column_name] = df[column_name].str.strip("'")
-    return df.iloc[:n_samples]
-
-
+    
 if __name__ == "__main__":
-    df_freq = fetch_openml(data_id=41214, as_frame=True)['data']
-    df_freq.head(10)
-    df_sev = fetch_openml(data_id=41215, as_frame=True)['data']
-    df_sev.head()
-
-    # Loading datasets, basic feature extraction and target definitions
-    df = load_mtpl2(n_samples=60000)
-
-    # Note: filter out claims with zero amount, as the severity model
-    # requires strictly positive target values.
-    df.loc[(df["ClaimAmount"] == 0) & (df["ClaimNb"] >= 1), "ClaimNb"] = 0
-
-    # Correct for unreasonable observations (that might be data error)
-    # and a few exceptionally large claim amounts
-    df["ClaimNb"] = df["ClaimNb"].clip(upper=4)
-    df["Exposure"] = df["Exposure"].clip(upper=1)
-    df["ClaimAmount"] = df["ClaimAmount"].clip(upper=200000)
-
-    df.reset_index(inplace=True)
-
-    log_scale_transformer = make_pipeline(
-        FunctionTransformer(func=np.log),
-        StandardScaler()
-    )
-
-    column_trans = ColumnTransformer(
-        [
-            ("binned_numeric", KBinsDiscretizer(n_bins=3),["VehAge", "DrivAge"]),
-            ("onehot_categorical", OneHotEncoder(), ["VehBrand", "VehPower", "VehGas", "Region", "Area"]),
-            ("log_scaled_numeric", log_scale_transformer, ["Density"]),
-            ("passthrough_numeric", "passthrough",["IDpol","VehAge", "DrivAge","VehBrand", "VehPower", "VehGas", "Region", "Area", "ClaimNb","Exposure", "BonusMalus", "ClaimAmount"]),
-        ],
-        remainder="drop",
-        sparse_threshold=0.0,
-
-    )
-    X = column_trans.fit_transform(df)
-
-    print(X[0,:])
-
-    bins=[]
-    for j,f in enumerate(["VehAge","DrivAge"]):
-        for idx, val in enumerate(column_trans.transformers_[0][1].bin_edges_[j]):
-            edge1= column_trans.transformers_[0][1].bin_edges_[j][idx-1]
-            if idx>0:
-                bins.append(f+"_bin"+str(edge1)+"_"+str(val))
-    column_trans.transformers_[1][1].get_feature_names(["VehBrand", "VehPower", "VehGas", "Region", "Area"])
-    feature_names = bins+\
-        column_trans.transformers_[1][1].get_feature_names(["VehBrand", "VehPower", "VehGas", "Region", "Area"]).tolist()+\
-        ["Density"]+\
-        ["IDpol","VehAge", "DrivAge","VehBrand", "VehPower", "VehGas", "Region", "Area","ClaimNb","Exposure","BonusMalus","ClaimAmount"]
-
-
-    print(len(feature_names))
-
-    feature_names = [x.replace('.','_') for x in feature_names]
-    print(feature_names)
-
-    df_transformed = pd.DataFrame(data=X, columns= feature_names)
-    #df_transformed.columns= feature_names
-    df_transformed.head()
-
-    df_transformed["PurePremium"] = df_transformed["ClaimAmount"] / df_transformed["Exposure"]
-    df_transformed["Frequency"] = df_transformed["ClaimNb"] / df_transformed["Exposure"]
-    df_transformed["AvgClaimAmount"] = df_transformed["ClaimAmount"] / np.fmax(df_transformed["ClaimNb"], 1)
-    df_transformed[df_transformed.ClaimNb>0].head(20)
-
-    # Save to feature store
+    main()
