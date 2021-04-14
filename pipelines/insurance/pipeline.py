@@ -47,6 +47,7 @@ from sagemaker.workflow.step_collections import RegisterModel
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
+
 def get_session(region, default_bucket):
     """Gets the sagemaker session based on the region.
 
@@ -74,9 +75,9 @@ def get_pipeline(
     region,
     role=None,
     default_bucket=None,
-    model_package_group_name="ab3-wip-ml-model-group",
-    pipeline_name="Ab3WipMlModelTrainingPipeline",
-    base_job_prefix="wip",
+    model_package_group_name="sagemaker-group-insurance",
+    pipeline_name="sagemaker-pipeline-insurance",
+    base_job_prefix="sagemaker-featurestore-insurance",
 ):
     """Gets a SageMaker ML Pipeline instance working with on WIP data.
 
@@ -103,22 +104,18 @@ def get_pipeline(
     model_approval_status = ParameterString(
         name="ModelApprovalStatus", default_value="Approved"
     )
-    input_data = ParameterString(
-        name="InputDataUrl",
-        default_value=f"s3://sagemaker-project-p-smhtklcuexkc/WIP-p-smhtklcuexkc/data/wip-dataset.csv",
-    )
 
     # processing step for feature engineering
     sklearn_processor = SKLearnProcessor(
         framework_version="0.23-1",
         instance_type=processing_instance_type,
         instance_count=processing_instance_count,
-        base_job_name=f"{base_job_prefix}/sklearn-wip-preprocess",
+        base_job_name=f"{base_job_prefix}/sklearn-insurance-preprocess",
         sagemaker_session=sagemaker_session,
         role=role,
     )
     step_process = ProcessingStep(
-        name="PreprocessWipData",
+        name="PreprocessInsuranceData",
         processor=sklearn_processor,
         outputs=[
             ProcessingOutput(output_name="train", source="/opt/ml/processing/train"),
@@ -126,11 +123,42 @@ def get_pipeline(
             ProcessingOutput(output_name="test", source="/opt/ml/processing/test"),
         ],
         code=os.path.join(BASE_DIR, "preprocess.py"),
-        job_arguments=["--input-data", input_data],
+        job_arguments=["--input_dataset_1", "41214", 
+                       "--input_dataset_2", "41215",],
     )
+    
+    '''
+    # feature store step
+    feature_path = 's3://' + default_bucket+'/'+base_job_prefix + '/features'
+    image_uri = sagemaker.image_uris.retrieve(
+        framework="xgboost",
+        region=region,
+        version="1.0-1",
+        py_version="py3",
+        instance_type=training_instance_type,
+    )
+    feature_processor = ScriptProcessor(
+        image_uri=image_uri,
+        command=["python3"],
+        instance_type=processing_instance_type,
+        instance_count=1,
+        base_job_name=f"{base_job_prefix}/script-insurance-feature-store",
+        sagemaker_session=sagemaker_session,
+        role=role,
+    )
+    step_feature = ProcessingStep(
+        name="FeatureStoreInsuranceData",
+        processor=feature_processor,
+        outputs=[
+            ProcessingOutput(output_name="train", source="/opt/ml/processing/training_input"),
+        ],
+        code=os.path.join(BASE_DIR, "feature_store.py"),
+        job_arguments=["feature_s3_url", feature_path],
+    )
+    '''    
 
     # training step for generating model artifacts
-    model_path = 's3://' + default_bucket+'/'+base_job_prefix + '/training_output'
+    model_path = 's3://' + default_bucket+'/'+base_job_prefix + '/features'
     image_uri = sagemaker.image_uris.retrieve(
         framework="xgboost",
         region=region,
@@ -143,14 +171,14 @@ def get_pipeline(
         instance_type=training_instance_type,
         instance_count=1,
         output_path=model_path,
-        base_job_name=f"{base_job_prefix}/wip-train",
+        base_job_name=f"{base_job_prefix}/insurance-train",
         sagemaker_session=sagemaker_session,
         role=role,
     )
     xgb_train.set_hyperparameters(objective = "reg:tweedie",
                                    num_round = 50)        
     step_train = TrainingStep(
-        name="TrainWipModel",
+        name="TrainAbaloneModel",
         estimator=xgb_train,
         inputs={
             "train": TrainingInput(
@@ -215,7 +243,7 @@ def get_pipeline(
         )
     )
     step_register = RegisterModel(
-        name="RegisterWipModel",
+        name="register-insurance-model",
         estimator=xgb_train,
         model_data=step_train.properties.ModelArtifacts.S3ModelArtifacts,
         content_types=["text/csv"],
@@ -243,7 +271,6 @@ def get_pipeline(
         else_steps=[step_register],
     )
 
-    # pipeline instance
     pipeline = Pipeline(
         name=pipeline_name,
         parameters=[
@@ -251,7 +278,6 @@ def get_pipeline(
             processing_instance_count,
             training_instance_type,
             model_approval_status,
-            input_data,
         ],
         steps=[step_process, step_train, step_eval, step_cond],
         sagemaker_session=sagemaker_session,
