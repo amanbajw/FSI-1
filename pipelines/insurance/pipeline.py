@@ -153,7 +153,7 @@ def get_pipeline(
             ProcessingOutput(output_name="train", source="/opt/ml/processing/training_input"),
         ],
         code=os.path.join(BASE_DIR, "feature_store.py"),
-        job_arguments=["feature_s3_url", feature_path],
+        job_arguments=["feature_s3_url", feature_path, "--feature_group_name", "sagemaker-featurestore-insurance"],
     )
     '''    
 

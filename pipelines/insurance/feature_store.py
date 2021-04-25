@@ -1,6 +1,5 @@
 """Feature engineers the insurance dataset and save result into feature store"""
 import subprocess, sys
-subprocess.check_call([sys.executable, "-m", "pip", "install", "sagemaker"])
 
 from functools import partial
 
@@ -19,7 +18,15 @@ from sagemaker.feature_store.feature_group import FeatureGroup
 import time
 from time import gmtime, strftime, sleep
 
+original_version = sagemaker.__version__
+if sagemaker.__version__ != "2.20.0":
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "sagemaker==2.20.0"]
+    )
+    import importlib
+    importlib.reload(sagemaker)
 
+    
 region = boto3.Session().region_name
 default_bucket = sagemaker.session.Session().default_bucket()
 prefix = 'sagemaker-featurestore-insurance'
@@ -164,9 +171,12 @@ def main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--feature_s3_url", type=str, required=True)
+    parser.add_argument("--feature_group_name", type=str, requred=False)
     args = parser.parse_args()
  
     feature_s3_url = args.feature_s3_url
+    if args.feature_group_name is not None:
+        feature_group_name = args.feature_group_name
 
     logger.info("FeatureStore arguments: ", feature_s3_url)
     
