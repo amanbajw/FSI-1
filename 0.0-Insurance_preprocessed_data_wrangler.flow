@@ -1,0 +1,1057 @@
+{
+  "metadata": {
+    "version": 1
+  },
+  "nodes": [
+    {
+      "node_id": "8e4938a6-a0b4-4bfb-9b70-9cc272e933f4",
+      "type": "SOURCE",
+      "operator": "sagemaker.s3_source_0.1",
+      "parameters": {
+        "dataset_definition": {
+          "__typename": "S3CreateDatasetDefinitionOutput",
+          "datasetSourceType": "S3",
+          "name": "df_freq.csv",
+          "description": null,
+          "s3ExecutionContext": {
+            "__typename": "S3ExecutionContext",
+            "s3Uri": "s3://sagemaker-us-east-1-989682844397/data_wrangler/insurance_dataset/raw_data/df_freq.csv",
+            "s3ContentType": "csv",
+            "s3HasHeader": true
+          }
+        }
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "faf8eaa5-ffaf-41b3-9635-a5dde99f1c8d",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.infer_and_cast_type_0.1",
+      "parameters": {},
+      "trained_parameters": {
+        "schema": {
+          "IDpol": "float",
+          "ClaimNb": "float",
+          "Exposure": "float",
+          "Area": "string",
+          "VehPower": "float",
+          "VehAge": "float",
+          "DrivAge": "float",
+          "BonusMalus": "float",
+          "VehBrand": "string",
+          "VehGas": "string",
+          "Density": "float",
+          "Region": "string"
+        }
+      },
+      "inputs": [
+        {
+          "name": "default",
+          "node_id": "8e4938a6-a0b4-4bfb-9b70-9cc272e933f4",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "02ab78ed-eac8-4816-b032-440f7b40a1ff",
+      "type": "SOURCE",
+      "operator": "sagemaker.s3_source_0.1",
+      "parameters": {
+        "dataset_definition": {
+          "__typename": "S3CreateDatasetDefinitionOutput",
+          "datasetSourceType": "S3",
+          "name": "df_sev.csv",
+          "description": null,
+          "s3ExecutionContext": {
+            "__typename": "S3ExecutionContext",
+            "s3Uri": "s3://sagemaker-us-east-1-989682844397/data_wrangler/insurance_dataset/raw_data/df_sev.csv",
+            "s3ContentType": "csv",
+            "s3HasHeader": true
+          }
+        }
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "9e1e0fb9-777e-4722-bd5a-b773fa4b1e04",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.infer_and_cast_type_0.1",
+      "parameters": {},
+      "trained_parameters": {
+        "schema": {
+          "IDpol": "float",
+          "ClaimAmount": "float"
+        }
+      },
+      "inputs": [
+        {
+          "name": "default",
+          "node_id": "02ab78ed-eac8-4816-b032-440f7b40a1ff",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "70d25555-fabb-499b-9790-cfcdf3d3949c",
+      "type": "VISUALIZATION",
+      "operator": "sagemaker.visualizations.describe_0.1",
+      "parameters": {
+        "name": "df_sev"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "9e1e0fb9-777e-4722-bd5a-b773fa4b1e04",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "ea379fee-42b3-4227-a431-88268578e6fa",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.custom_pandas_0.1",
+      "parameters": {
+        "code": "# Table is available as variable `df`\nprint(df.info())\ndf= df.groupby('IDpol').sum()\ndf = df.reset_index()\nprint(df.info())"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "9e1e0fb9-777e-4722-bd5a-b773fa4b1e04",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "b9db03a0-a55e-42d9-a3d1-ec71250b5546",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.join_tables_0.1",
+      "name": "df_freq_sev",
+      "parameters": {
+        "left_column": "IDpol",
+        "right_column": "IDpol",
+        "join_type": "leftouter"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "faf8eaa5-ffaf-41b3-9635-a5dde99f1c8d",
+          "output_name": "default"
+        },
+        {
+          "name": "df",
+          "node_id": "ea379fee-42b3-4227-a431-88268578e6fa",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "aa25ed8d-8200-47f2-a096-f0cf73a892eb",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.handle_missing_0.1",
+      "parameters": {
+        "operator": "Fill missing",
+        "fill_missing_parameters": {
+          "input_column": "ClaimAmount",
+          "fill_value": "0"
+        },
+        "impute_parameters": {
+          "column_type": "Numeric",
+          "numeric_parameters": {
+            "strategy": "Approximate Median"
+          }
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "b9db03a0-a55e-42d9-a3d1-ec71250b5546",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "23fc1c12-400f-4476-9f5e-2af774e11cec",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.custom_pandas_0.1",
+      "parameters": {
+        "code": "# Table is available as variable `df`\ndf.set_index('IDpol_0', inplace=True)\ndf2 = df[(df[\"ClaimAmount\"] == 0) & (df[\"ClaimNb\"] >= 1)]\nindex_names = df2.index\ndf = df.drop(index_names)\ndf.reset_index(inplace=True)\ndf.info()"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "aa25ed8d-8200-47f2-a096-f0cf73a892eb",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "5bfdee67-724b-40f2-9091-4613948a43c2",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.handle_outliers_0.1",
+      "parameters": {
+        "operator": "Min-max numeric outliers",
+        "min_max_numeric_outliers_parameters": {
+          "input_column": "ClaimNb",
+          "fix_method": "Clip",
+          "upper_threshold": "4",
+          "lower_threshold": "0"
+        },
+        "standard_deviation_numeric_outliers_parameters": {
+          "standard_deviations": 4
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "23fc1c12-400f-4476-9f5e-2af774e11cec",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "c751fb06-4739-49bc-9f8c-2835475b0b48",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.handle_outliers_0.1",
+      "parameters": {
+        "operator": "Min-max numeric outliers",
+        "min_max_numeric_outliers_parameters": {
+          "input_column": "Exposure",
+          "fix_method": "Clip",
+          "upper_threshold": "1",
+          "lower_threshold": "0"
+        },
+        "standard_deviation_numeric_outliers_parameters": {
+          "standard_deviations": 4,
+          "input_column": "Exposure",
+          "fix_method": "Clip"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "5bfdee67-724b-40f2-9091-4613948a43c2",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "53305466-88b2-4a2b-9a20-1270e0f6bc23",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Rename column",
+        "rename_column_parameters": {
+          "input_column": "IDpol_0",
+          "new_name": "IDpol"
+        },
+        "drop_column_parameters": {}
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "c751fb06-4739-49bc-9f8c-2835475b0b48",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "b1e0bdc4-f7af-4348-88e8-ea71e93ef196",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Drop column",
+        "drop_column_parameters": {
+          "column_to_drop": "IDpol_1"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "53305466-88b2-4a2b-9a20-1270e0f6bc23",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "fb325cf7-218a-40af-81df-6f10dc685105",
+      "type": "VISUALIZATION",
+      "operator": "sagemaker.visualizations.describe_0.1",
+      "parameters": {
+        "name": "Untitled"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "b1e0bdc4-f7af-4348-88e8-ea71e93ef196",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "7fd2e75c-04dc-4f7b-a2dc-139d31184ab0",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.custom_pandas_0.1",
+      "parameters": {
+        "code": "# Table is available as variable `df`\n## import libraries\nfrom sklearn.compose import ColumnTransformer\nfrom sklearn.preprocessing import StandardScaler, KBinsDiscretizer\nimport pandas as pd\n\n## Apply KBinsDiscretizer\n\ncolumn_trans_kbins = ColumnTransformer(\n    [\n        (\"binned_numeric\", KBinsDiscretizer(n_bins=3),[\"VehAge\", \"DrivAge\"]),\n        (\"passthrough_numeric\", \"passthrough\",[\"IDpol\",\"VehAge\", \"DrivAge\",\"VehBrand\", \"VehPower\", \"VehGas\", \"Density\", \"Region\", \"Area\", \"ClaimNb\",\"Exposure\", \"BonusMalus\", \"ClaimAmount\"]),\n    ],\n    remainder=\"drop\",\n    sparse_threshold=0.0,\n\n)\n\nX_kbins = column_trans_kbins.fit_transform(df)\n## Rename columns to include bin ranges\n\nbins=[]\nfor j,f in enumerate([\"VehAge\",\"DrivAge\"]):\n    for idx, val in enumerate(column_trans_kbins.transformers_[0][1].bin_edges_[j]):\n        #print(idx)\n        edge1= column_trans_kbins.transformers_[0][1].bin_edges_[j][idx-1]\n        #print(edge1)\n        if idx>0:\n            bins.append(f+\"_bin\"+str(int(edge1))+\"_\"+str(int(val)))\n        \n        print(bins)\nfeature_names = bins+\\\n    [\"IDpol\",\"VehAge\", \"DrivAge\",\"VehBrand\", \"VehPower\", \"VehGas\", \"Density\",\"Region\", \"Area\",\"ClaimNb\",\"Exposure\",\"BonusMalus\",\"ClaimAmount\"]\n\n\ndf_transformed = pd.DataFrame(data=X_kbins, columns= feature_names)\ndf= df_transformed\nprint(bins)\n"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "b1e0bdc4-f7af-4348-88e8-ea71e93ef196",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "cd17d86a-52a1-4be9-9ae4-1039e359b078",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.cast_single_data_type_0.1",
+      "parameters": {
+        "column": "VehPower",
+        "original_data_type": "Float",
+        "data_type": "long"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "7fd2e75c-04dc-4f7b-a2dc-139d31184ab0",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "fad2454f-81f8-44e9-bdce-51ee8b5583d5",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.encode_categorical_0.1",
+      "parameters": {
+        "operator": "One-hot encode",
+        "one_hot_encode_parameters": {
+          "invalid_handling_strategy": "Keep",
+          "drop_last": false,
+          "output_style": "Columns",
+          "input_column": "VehBrand",
+          "output_column": "VehBrand"
+        },
+        "ordinal_encode_parameters": {
+          "invalid_handling_strategy": "Replace with NaN"
+        }
+      },
+      "trained_parameters": {
+        "one_hot_encode_parameters": {
+          "_hash": -1767228197713558300,
+          "string_indexer_model": "P)h>@6aWAK2mt2{l~Tvos5#&O003qI000vJ003=ebYWy+bYU-WVRCdWFfcGMFm;YiOT$1AK=1yHJ*P`TNSpL%z4TBNlwQM_oit1L%h_GAmi%{z2%-f~GYs!N<|+mQF^aA5bdnHYm{7(5be7i05g}zl`J70*)7~lkKstDZMie4xi!p%>Vq2}Nwp({q(`=eeAr}9L6t#C;u4O6971&R=D%s0g@$pZxuiLI{U(33Ns%3<Ium|AsRcIG-+Ihpy5vO|sr<j;{7~H#eFiY-?82IdS`k@or&=0)Mg-|#`HtFeC_qKpUo^BHVKiT)+91C%Q9!Vj+TmrH-624`0!{q_vAm;h*3s6e~1QY-O00;o*43$#lGJa$Z0000C0000O0001OWprU=VRT_HE^uLTbS*G2FfcGKV{&6lE=p!#U|?dfTygz408mQ<1QY-O00;o*43$zbHvW#U0RRA-0ssI=0001FVRT_HaA9(EEif=JFfc7NIW}TuWHB=>HDxh0Ei^M>FfC#@VKFT?I5lNCGc!0eIAu94V=yo<E^}^SaBz7paA9(Bb!BvoQqgYHFcfu6ldU2=I&!2uRF*nztXT1qnzZ6&eL_5-2~7wIA>=g9h~}hS?1HALKfsqD#DBoI@D+GX2L*)0gRk$s=Um@=u6%a-f+2vuIOwA@LV<NX<V74D!WqYK#sB~>&s}TXPoEzGXq~{lXYGugI1hR==6Zb}B(4v}t_Qe1Y5y3+{k@EJtfaeA1Vi=I*Gth}zSZ-0vK9z}F~s+k$feS!Z7Z%3L>?ITa8Fg*bnu>3vX+hc6GHy*7dW&-!7vJ=gZ&8k;ShM?tKD}uMR(-i0tAB~`0fPXoP+%*JEFtLE&`y9Tnj@Gjxb)d7gQ{T9iDD<(D$;{)uO>}LSq^OeDoJXUny#xtCcjgU3{RmG@=kj;IGaNG1p5;rbL@|H8*5L%1Ww2lj-Xl(un#N+R<R~j{mbxY|~pQ=l_A;_Ntl-o1QNkBdSI}UnxbVb^^KnN3yYj$d&98BXTFf_FAvstO0(u75J!b2iuJd7-cbKgTs7PsbUb9lcG$MLY8HoWo7ZW%sA%-Pxypo=}D5rWy<qnaui09-T1Lx`<eZgKLAim0|XQR000O8=M0rnGxnHx5&!@I5C8xGO#lD@WMOn+FD`Ila&#>)FfcGMEi^ecVrFD9Gc7e`F*GeSGhr|-VmM(jEjKtdWjQl5I5aqAIW1!_FfcB2Zeeh6c`k5aa&dKKbS`6ZV@obdW?*1oVh9nK=(bSjY&rl?O928D0~7!N00;o*43$#H*Qhz*0001H0RR9K00000000000001_fdBvi0BvP-VPs)+VJ~oDa&#>)FfcGMP)h*<6ay3h000O8=M0rn<uZO`4gdfE3;+NC7ytkO0000000000q=69u003=ebYWy+bYU+paA9(EEif=JFfcA-a$`_S0Rj{Q6aWAK2mt2{l~OS_{*JE!005f;002k;0000000000005+cRRI71WMOn+FK}UUbS*G2FfcGJG&we6W@IrlEj48^G%YkUVK6OXIAJj@H#jwAIWsdjG&p5BEn_e+FfMa$VQ_GHE^uLTadl;MP)h*<6ay3h000O8=M0rnGxnHx5&!@I5C8xGO#lD@0000000000q=9M!003lRbYU+paA9(EEif=JFfc7NIW}TuWHB=>HDxh0Ei^M>FfC#@VKFT?I5lNCGc!0eIAu94V=yo<E^}^SaBz7paA9(Bb!BueV{&6qO9ci10000400aPd0RRB!0{{R300",
+          "one_hot_encoder_model": "P)h>@6aWAK2mt2{l~Nz1N_N!%003zL000vJ003=ebYWy+bYU-WVRCdWFfcGMFpZA8PQySDMSDJD>ty96*kHFPQjmzCqFs&bSz@s-&CXH~`QMoYfk=TwGsV?C=gv`$9!gPzO7yBB!+1blGSHh2UONP?g!(DsF7Y;wX+qk|@oJ@b4p<mMR)guxUElSlZTp*UrOx~dQkhc}^F}wiSwr}U>qfXbPZC}zt-0<S(>b^4Z(FGd4`B~tKB_t9%J<0&!x*w1(`ozwaq{>O-@%`CNR&wORQacFzx(zyJ5kDyP*@EPe8EK$bWlA%{~G&`_V3TF{pww;F;!fat4~l%0|XQR000O8=M0rnlMZ!(4gdfE3;+NC7ytkOZDn*}WMOn+FD`Ila&#>)FfcGME@N_IOD;-gU|?WkDDzq(4**b00|XQR000O8=nR!oG0Bp;egOagFaiJoNB{r;WMOn+FK}UUbS*G2FfcGJIWajnV>2^iEjTr0HZ3$}WHBu`FgG(TGBhwTI5IIcH)J(oEn_e+FfMa$VQ_GHE^uLTadl;MeNs(JD=`#JV_$Wl3l|wOFpCnfD2!p|O&zDjh3-T|MBRx<+DUxF%godyRjL;J8U8?jh_|+iBACGCew=gfxgn<qXE8y9kxoc3I4#l&Xmb@IG`Akw{1U-g-^XB=;DW_ymL=FfK3ugUVg6s+;Xhdlg3%79YeV7WO>HLU#e=lazJ+$0w5bd006_2tqRUdtQdSOm*bn@mvl2kF4b<|p@8oyV2bf?Fdr#hTqqDO2i&j5?ePGP2^5kLUhm_XlhKrE^k^EgRzmvumbw&RqJmL|eTR#x?R&#J}$I@|A-}6#Bkqam2OXHEb$w;z3v(Ai%j)hDWQs<WSFCSSY%30~#8i1HHKAFN8F@f}AwTpSSsDLC5<cD?TL{Zt3vDU1wgtl@TvI-(G&;W(OGGrf`pz(BiHAVDjp?JGA?Zt}in8y*1+na-Nq4Rd6db#Q*xm0S9Wh&oQS(>JKnxwrr>;6rWNOjXe-rMqn0ABF5fzT=Zl{ZjJ0|XQR000O8=nR!o(GaSJ5&!@I5C8xGO#lD@WMOn+FD`Ila&#>)FfcGMEjckcIAb$2Vl6l|Wi~A|W@IrfI50OeEiyDPF*q_YH8*56VJ%}YFfcB2Zeeh6c`k5aa&dKKbS`6ZV@obdW?*1oVt8ZOGyU8@D>DF4O928D0~7!N00;o*43$zJq)K+x0001K0RR9K00000000000001_fdBvi0BvP-VPs)+VJ~oDa&#>)FfcGMP)h*<6ay3h000O8=M0rnlMZ!(4gdfE3;+NC7ytkO0000000000q=5zj003=ebYWy+bYU+paA9(EEif=JFfcA-a$`_S0Rj{Q6aWAK2mt5|l~OUulDd8Y001xo002k;0000000000005+cN&x@>WMOn+FK}UUbS*G2FfcGJIWajnV>2^iEjTr0HZ3$}WHBu`FgG(TGBhwTI5IIcH)J(oEn_e+FfMa$VQ_GHE^uLTadl;MP)h*<6ay3h000O8=nR!o(GaSJ5&!@I5C8xGO#lD@0000000000q=7C2003lRbYU+paA9(EEif=JFfc7SF*!J6Gc#f>I5lN9Ei`6iF)cVSH#03VG%ztZGBGtbWHn(eV=yo<E^}^SaBz7paA9(Bb!BueV{&6qO9ci10000400aPd0RRB20{{R300"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "cd17d86a-52a1-4be9-9ae4-1039e359b078",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "26d57529-2ac7-4cc1-b6ae-4bef31607337",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.encode_categorical_0.1",
+      "parameters": {
+        "operator": "One-hot encode",
+        "one_hot_encode_parameters": {
+          "invalid_handling_strategy": "Keep",
+          "drop_last": false,
+          "output_style": "Columns",
+          "input_column": "VehPower",
+          "output_column": "VehPower"
+        },
+        "ordinal_encode_parameters": {
+          "invalid_handling_strategy": "Replace with NaN"
+        }
+      },
+      "trained_parameters": {
+        "one_hot_encode_parameters": {
+          "_hash": -1767228197713558300,
+          "string_indexer_model": "P)h>@6aWAK2mmn+l~Rx%9O~cz003qI000vJ003=ebYWy+bYU-WVRCdWFfcGMFny29PQx$|MfZG$*Qu2jl#*^?(?vxkP`A;@zG<TR#n=W)m4C+s2?-?FS;zODnYjpMC`Pdno{y3OsR1$u;*+#S_Mns*@-gw~j$5bk2HtrMBPx+bi<rm;u~|0D+qP*}?M>aTDlzvD;5d3$%-6D(^@8lXThyhOM_u3#W!C_DP3u-QeP1G_Pj*Med=UdVZLoDOWai=t2qiMQkkg$vg&Z*K{VTXopVK!^u%T1sIaNZVr)<*xA1|2wry|aaJ+KBpode2G&v?#o>U@u=ehvBijIR62iD|m}08mQ<1QY-O00;mv4V6+3+W&nH0000C0000O0001OWprU=VRT_HE^uLTbS*G2FfcGKV{&6lE=p!#U|?c+B_lTh08mQ<1QY-O00;mv4V6;7Ur~Rq0RRA;0ssI=0001FVRT_HaA9(EEif=JFfc7*WH~uzWH)9lW;taxEi^S{G%aB_VKyygI5B2oIb}FDHDom{V=yo<E^}^SaBz7paA9(Bb!BvoQo(B5KoFf>EHz+X*Q`Jgv*3^vcab7lkxVYRl^#l3dMK3AuB=rmx{@93x+MhvL%yM>k{{`%-_URA%66KxrO?AXX6DW8%p3On>}5!Rd_m*}O$fEFOI$yJLzGb*1_1Ely<^e&dV34lI@CcHlMYUh15<0UwG{35!T|LlbNUcEE*v{<5OodVbb~R$o_adaOVNIOr{^DJEeM7wrhO%Hsq|UfiYtPN3)3F$sY;tI{YWZV%f|dkk-_+$90Lro=X?Iao=*ne7+ml5!*@4Lcg4R21P|%(2O54y2YaXYvOV8k0!X)c$71j%lrGu}E|$XX&NnjnC)w(1(NHJi0S|y4{Z*ka6}QgiN*dlSKJ!`{Q3xaGH+0R+)l#w<)23a`4V$pClB&>b_U4*3qVA{%5-h*1|J5gU>79~S|G{>%s^-F`=ZnUOs?pC^O0k*UK(7ChY-}KMCAWzQyOUsNt=DhYK%eadKB?Q$?joa*hXD^qhxw{f#V9DVqKu<LmSvu%WpPrbNs<&vlw@HVA4gG8#z|geN1pH7i$At!Kezw#Cs0cR1QY-O00;mv4V6-c1w!)@0000G0000@0001FVRT_HE^uLTbS*G2FfcGJVq`fvW@I;JEoM1oHZ3$YWi%~eH(@p{WjHZrVmW0vHZ^25En_e+FfMa$VQ_GHE^uLTadl;ME@N_IOD;-gU|?WkQ1m<9D=3k62LMn@0Rj{Q6aWAK2mmn+l~Rx%9O~cz003qI000vJ0000000000005+c00000ZDn*}WMOn+FK}UUbS*G2FfcGsO928D0~7!N00;mv4V6+3+W&nH0000C0000O00000000000001_fe`@!0BvP-VPs)+VJ|LlVRCdWFfcGMFfL<qV^B*00u%!j0000805J`fQoLVLf35)l0Gt8<07w7;00000000000HlFc0RRAGVRT_HaA9(EEif=JFfc7*WH~uzWH)9lW;taxEi^S{G%aB_VKyygI5B2oIb}FDHDom{V=yo<E^}^SaBz7paA9(Bb!Bu=O928D0~7!N00;mv4V6-c1w!)@0000G0000@00000000000001_foTH(0AyiwVJ|LlVRCdWFfcGMFfC$aIXPxzH)btnIb}92G&N;3EnzodHZ5g1F=k>pWjHo9WHl{gFfcGKb8ca9aCt6pVRCVGWpplMa$`_S1qJ{B000C41ORve008C#00000",
+          "one_hot_encoder_model": "P)h>@6aWAK2mmn+l~U&4dUw|V003zL000vJ003=ebYWy+bYU-WVRCdWFfcGMFm;bTPs2bAhIf93=k$~|RnlZdNUcN#6YI(392#+7^7$C3^4~d%Kp@e@!>jjsY@cDYm=X*S_(fsF@kA;`<X7dang}H`sRvK{Aa{NYhWJ>9g$iVLlmuObVco8GecNyP?WSugxbRQJX%4=a8&#`%h3?(2>cZvOl<<#IH{G-8scXk>yDOE#qdQ_TpTTg5_m~8R32mYZLYA22HrQg(LN4ktSp8`}p*NNe{tfMA2QddO`Rspy?>;OQ7@9C!dHi>oaHi|V-#1+UMC-2}EX&OYP)h>@6aWAK2mmn+l~Uto2o(+h000aC000;O003=ebYWy+bYU+paA9(EEif=JFfcA-a$`#_N@ieSU}7k*y8jFSP)h>@6aWAK2mmn+l~P>?2V#B!001xo002k;003lRbYU-WVRCdWFfcGMFfB7-VPZ36FlH@dIW=J|G%#gkEnzofWGyl>WHK~mW-~H0V`D92FfcGKb8ca9aCt6pVRCVGWpsT~O-m~=6is7ab)gFv88R@760j(YVdhO8r^SWtL_|d0iAdT>e8bDk)Ff4^7W^6hK!1q0wu&N{z~z3NbMLt!rw3;-L4=V`NH91p(h6vE4IwnQ9@_j8!CBwOV3**6#b}l#*grm8wIgBvU)$k7Sqg&D4yJ2E;p9ziCg;V2w9vkVcAB)Q3+n(t@CKsGQp-|S4tdxQ{GhWEK(h_h^0V*cchU!#U=Mpw-gBd~viFNtKY)E;%&hX{VdRID*5-zbkpPkWT`#|r#ujx&|0F!(5u#f^5cXDcaBj!aaZ}&(QaX_fC+JJ#k-5o8vOcrUjE9beOche+mh~?mStZI@>DwBBm@__^!Wc1u^kTJ(dA6v4Bn{+;b>&1+*^{x>tgnQ&avHJ<A~Dbag~2jpADW=?bb2*K^k|`YyEN^^itU)k5s%xOgK?qrcBFc_>L$5VYLI0r-&I+frg@sAy*TUsO_E4;(?Q<b@`C_g@U?-^Dg2c;P)h>@6aWAK2mmn+l~QoBR%{Xg000mG002z@003lRbYU+paA9(EEif=JFfc7MVPRr3WH4qeV>vZpEi^D?WG!JgV`MEdGGsC|Wo9!nG-G2eV=yo<E^}^SaBz7paA9(Bb!BueV{&6lE=p!#U|?ccY|*~v+&?Qb08mQ-0u%!j0000805J`fQs&=!ch>*_0BHdL022TJ00000000000HlEc0001OWprU=VRT_HaA9(EEif=JFfdR{0Rj{Q6aWAK2mmn+l~Uto2o(+h000aC000;O0000000000005+c2mt^9ZDn*}WMOn+FD`Ila&#>)FfcGME@N_IP)h*<6ay3h000O8F%6YcT?YqZegOagFaiJoNB{r;0000000000q=8HU003lRbYU-WVRCdWFfcGMFfB7-VPZ36FlH@dIW=J|G%#gkEnzofWGyl>WHK~mW-~H0V`D92FfcGKb8ca9aCt6pVRCVGWpq$W0Rj{Q6aWAK2mmn+l~QoBR%{Xg000mG002z@0000000000005+cFarPpWMOn+FD`Ila&#>)FfcGMEi++ZVl!kgW-VhmHDN6@FlA&dVK-xBEiy7>GBjmoGcq(|V=ZGaFfcB2Zeeh6c`k5aa&dKKbS`6ZV^B*41^@s600aO80C)ia0IdT60000"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "fad2454f-81f8-44e9-bdce-51ee8b5583d5",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "b93e688b-df85-4f6b-82d6-d30c42c67c20",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.encode_categorical_0.1",
+      "parameters": {
+        "operator": "One-hot encode",
+        "one_hot_encode_parameters": {
+          "invalid_handling_strategy": "Keep",
+          "drop_last": false,
+          "output_style": "Columns",
+          "input_column": "VehGas",
+          "output_column": "VehGas"
+        },
+        "ordinal_encode_parameters": {
+          "invalid_handling_strategy": "Replace with NaN"
+        }
+      },
+      "trained_parameters": {
+        "one_hot_encode_parameters": {
+          "_hash": -1767228197713558300,
+          "string_indexer_model": "P)h>@6aWAK2mrzjl~PTf{i@vn003kG000vJ003=ebYWy+bYU-WVRCdWFfcGMFnx~AO2a@DM)y9(U8h50NHpD6kS<CKO1I%MbJK**pLb@&TJr9W5d;O@ew=got{^pr0Bdl366jHmB!Wji3!}wA7!#9tiagoV)+%}<-Z@1Y3W$@T5Yc#8S8a9QwO!LTw^dWX;vb2_<ZLe2q7>x{&AVNd*-Mkk<Bw$D)TO$sYpJ@n$w>Cm>@b(FFrrnOw)PeEBA$tSMqG+M#f{T>ie!8*-RG&vey>LwA2GmOfT97Dj)#A$#O(N2_V0^*|HWk?EYO}6@$<z~)&{1RL{?rNC`g#+n-5S+0|XQR000O8!VQ&Dh7Kx?4gdfE3;+NC7ytkOZDn*}WMOn+FD`Ila&#>)FfcGME@N_IOD;-gU|?WkSoL?FF91+W0|XQR000O8!VQ&DLZTpLlK}t#ivj=uNB{r;WMOn+FK}UUbS*G2FfcGJVl_24HaKQCEj46eW-T-`Fk>w_WMpM6G&f~8G%+(ZFl9A1En_e+FfMa$VQ_GHE^uLTadl;MjZ)D{<3JR>jWI23U#CnU4`r~TP={nwvu)WIVIRZ?5%EEAmu1pSYS>9yXC}Ld^e>kEC4XzLHoEF6_%hsk&bf2uT;}B9G$KF_$<dIwSa`$>64+^<%6YAXrrwuA8mRzaE7-tuqXTZM{dEtZja{Siuw3hi<Ez82SqlB*yO~|eQV<9B9r{6uR4Q|zwYVk@@nGMjt}2XO(`~6_DJ%PuBHh71asbeC{J;;kI|1qX1MvLwr}y3uJ&2z*#Ob-c->u%C)^_LfYw7#|qXQbE1?n8|hm<b#oQtKv6#PCA|0%U878Tu$dB{VcyZ<T7mEu@j)zWgk_{B?UMJBAEx2+pyua}ZdnX$T_SvF*OAysDB^x}q9qP(M?gh76-f1DEy++;d?2YcsLRC9!9i^__kGRL)2Y>F?Ct2e+38<8rx28Qe*0(z}h-&R16nt*$y?l&9hM?4C7)Za<#LS_9hpJe$c&Saja<8hvS%Ew8PWJ#P%qVecs9EbTRNwdkW9|XAZ5w86Nzu{j{O9KQH000080KyHGQa~bS%n|?q01yBG08Ib@0AyiwVJ|LlVRCdWFfcGMFfC#=H8(amW;ZQ0WMO74G&3+`EjeUlWi2!}Wj8c2Gc_<}H8w3{FfcGKb8ca9aCt6pVRCVGWpplMa$`#_N@ieSU}9K0txb3lmzV$mP)h*<6ay3h000O8!VQ&DO`iR#-2eapWB~vG6951J0000000000q=5hc003=ebYWy+bYU-WVRCdWFfcGMFi=YY0u%!j000080KyHGQicvHjSc_+01N;C02lxO00000000000HlEq0RRAPWprU=VRT_HE^uLTbS*G2FfcGKV{&6qO928D0~7!N00;oW4V6+tq9A3H0RRAt0ssI=00000000000001_fl>hg0AyiwVJ~oDa&#>)FfcGMEn+n_H#RtCH!U?}VP-8fGcaQ<Ib>vIEi^Y}H#9LbH85p0HZ5Z?FfcB2Zeeh6c`k5aa&dKKbWlqH0u%!j000080KyHGQa~bS%n|?q01yBG08Ib@00000000000HlFS0{{SIVRT_HE^uLTbS*G2FfcGJVl_24HaKQCEj46eW-T-`Fk>w_WMpM6G&f~8G%+(ZFl9A1En_e+FfMa$VQ_GHE^uLTadl;ME@N_IP)h{{000001ONm8cmV(a$O8ZX000",
+          "one_hot_encoder_model": "P)h>@6aWAK2mrzjl~U<`i2>69003zL000vJ003=ebYWy+bYU-WVRCdWFfcGMFpZ8qPs2bAhIf9(&F$%;kU+9lNUcN#6YI&!IW*$F<nu95<-cQ!Kw_xG;^DEM_w`v#9!gQ8O7yBB!*oJjGSHh2Ue5?z3H4LNed32WC5LpB;nha*60k6Ytj4Bq?uUNp`mP<!MqT_Dq_U(a$*nfpY$1Hatr4#-PT-$NdwbWkJ<hH(-5@98LpXvYpH-@yEANsQ$ufp)r{wKd&=P+aKV0YuqVsr&@8B;*NR&vpqm&<^uo`FZ1y><BL-qW8rR@5L)_&jptBtARy54*OP)h>@6aWAK2mrzjl~NPLeaj92000aC000;O003=ebYWy+bYU+paA9(EEif=JFfcA-a$`#_N@ieSU}9kGta}LnP)h>@6aWAK2mrzjl~U8h^R9pa001xo002k;003lRbYU-WVRCdWFfcGMFfBGVH#s&oVmK{0GGa3=G&p2oEn#6ZG%aE`WMgGAIWS^3FlH@dFfcGKb8ca9aCt6pVRCVGWpsT~O;6)65Ov*BI4lPajvOh6$`Tbw!AeL8X~h9<tJP|SfEz-{ZET2el485NDo}}^!4KqzF#P~6Lc)jfe7raF#`5XOSxgXNq#F_pPMfp?+G-+%mexZ%|3z@NjxpFKnukrixCr)t|NLRc!rWck(XA{6!RP?f&5>~OrZ&^_;z3$y-$n;5+R}w}03di9(RHb1DJzFO><50(-3XxBHfsCXXYzvd4kp;c-jny-=x!W+qty>!9~d*QJb4)TA*Hps;bJU6Bwy&|f2FZSUD36KM?6Aw_Y1<_YYxu+L^^Kjf4r1V<iZL1(s*QUI+kp}tTU65V<A(8)VXDY%STp;a$fqh1|XJ<52i3iOd-8m?P8fNDj-P%`B7atQB?NNL~AxsLR&ctSp|_8YJkFE8M1dx(0Dexnj!jYrFgG2oz;q+n8y*1J3GTkq4Q3p`nl>Qxm0SHWhy^ZS(>JKnxy?W>+L5=q<ZNv@9+9S05AC3K<E_y${SEi0|XQR000O8!VQ&Dv!10t5&!@I5C8xGO#lD@WMOn+FD`Ila&#>)FfcGMEjBhcIW{(8I4w9bVlyo?IAmchVPP{gEn+uhV`VZqFk&|_W-VhdFfcB2Zeeh6c`k5aa&dKKbS`6ZV@obdW?*1oVmN>0Mb5c@R%QTDO928D0~7!N00;oW4V6;qeu)9o0001K0RR9K00000000000001_fdBvi0BvP-VPs)+VJ~oDa&#>)FfcGMP)h*<6ay3h000O8!VQ&D6U2SX4gdfE3;+NC7ytkO0000000000q=5th003=ebYWy+bYU+paA9(EEif=JFfcA-a$`_S0Rj{Q6aWAK2mrzjl~U8h^R9pa001xo002k;0000000000005+cNC5x<WMOn+FK}UUbS*G2FfcGJHa0goHa227EjTh_Gc7bYWMM5~VKX!>VmD-CWimN1VmB~mEn_e+FfMa$VQ_GHE^uLTadl;MP)h*<6ay3h000O8!VQ&Dv!10t5&!@I5C8xGO#lD@0000000000q=7C2003lRbYU+paA9(EEif=JFfc7PHa9soHexs}I5J{0Ei^b}VJ%@{Gc+w?H)LaFGC43}H!x-`V=yo<E^}^SaBz7paA9(Bb!BueV{&6qO9ci10000400aPd0RRB20{{R300"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "26d57529-2ac7-4cc1-b6ae-4bef31607337",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "20093d33-0716-4cfc-9ef9-7ff7c50a0e7b",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.encode_categorical_0.1",
+      "parameters": {
+        "operator": "One-hot encode",
+        "one_hot_encode_parameters": {
+          "invalid_handling_strategy": "Keep",
+          "drop_last": false,
+          "output_style": "Columns",
+          "input_column": "Region",
+          "output_column": "Region"
+        },
+        "ordinal_encode_parameters": {
+          "invalid_handling_strategy": "Replace with NaN"
+        }
+      },
+      "trained_parameters": {
+        "one_hot_encode_parameters": {
+          "_hash": -1767228197713558300,
+          "string_indexer_model": "P)h>@6aWAK2mnP6l~OWeH^<%p003kG000vJ003=ebYWy+bYU-WVRCdWFfcGMFny2BPQx$|gzr3t&#4tFlGXGImmVq*t++;8dy`uAA8Q*?s=PaHkdQ!v>+F0pvsb1pq{KEX(8M8vIw4OH=**qvBSJ2Oe4okqY3nt<Bkh7l%NmxA!<4~Awh>aSd)cpr=tbACg?~XxCit4%@s_tMa36lvR<0Ob#UGJ_6h}QuDf<qO)lzwIJE+N5b^@<0Zv7kB1w13hY6&IBlJA49QbrdC6>g)9|5l%Iy7kWu(>Ox0`RSijBnnjdw9I-WjdZv~te27SwV+p*2TbZ$@!wAj!<UcE^W7&<O9KQH0000807VX!Qj@{<xefpT01N;C02lxO0BvP-VPs)+VJ|LlVRCdWFfcGMFfL<qV@obdW?*1oVmNM|Yy<#MO9KQH0000807ed#QYhG<e$oK|0M7yd07w7;0AyiwVJ~oDa&#>)FfcGMEoCt{IAbzmF)cJ=Wn(QgGh#U{VKHPmEig1VH)b(rGGaJ0W-VhdFfcB2Zeeh6c`k5aa&dKKbd6HYYTG~%Uaur8qHb?%B+$VK9Fn3eUj11zfskA2p#+mdp_H<+R;lPpb|kqa1iwWeqAh)o-uoDRijHijO<D@Q%zQK7%<g_4dvQKz1d;EU{OGyF1=uHjJ3>dwJPAx?&KN@IbMI1vq<s2fV+_F66o_*#&~!ESAS6Bn#xxy;#uF4iwhe-&fc&m9&Hz6}fk9L+)Xr2dGIYa6o)M!M_$lPX&`&+KJv8uk$tT#7&j!tk*YDmmi?^cW1fvj}k0eipY|iVN-w;gtC{#^V7EQaObs<G5s`gKc49367F+xLZ*_M5HV3UD0Mt$q${d2cVcf$_~f`{(#qcZ%84-ZZs*ksvY9wMDT-2g_GYnsdYit-hQ=hLkc`d-vcv8+tZrxQ9s=J8(>&9$TeuGgZa_3{HPMawhZa`Rj7)@g56!kIZuTdx<b<2rdEWY##dSGP{Z%Z|FI0{GqhuRXqR@5NmH2ix6MR9DbmEUT6mRr6vkr89#Uh|NEm6%;&`V%Kn;I|*>tX7hT3%;$T7CuKd_J2GOFO(+{3rRzdwqe-4*dEjRv&(k>0vuPejQIth~l(0DPe1DP$QJN*kmTiOMCt&*peC3}|O9KQH0000807ed#QmcCwWfA}Y01yBG08Ib@0AyiwVJ|LlVRCdWFfcGMFfC;<I5=Z6Vlgc=Vr643G&5p3EnzWaIV~_WI5%c7W-?+pGiEJgFfcGKb8ca9aCt6pVRCVGWpplMa$`#_N@ieSU}7-Ktccss%5ew)P)h*<6ay3h000O8MGloxGGjN#-T(jqWB~vG6951J0000000000q=5hc003=ebYWy+bYU-WVRCdWFfcGMFi=YY0u%!j0000807VX!Qj@{<xefpT01N;C02lxO00000000000HlEr0RRAPWprU=VRT_HE^uLTbS*G2FfcGKV{&6qO928D0~7!N00;m^4wX_U*r0yW0RRBc0ssI=00000000000001_fl~nh0AyiwVJ~oDa&#>)FfcGMEoCt{IAbzmF)cJ=Wn(QgGh#U{VKHPmEig1VH)b(rGGaJ0W-VhdFfcB2Zeeh6c`k5aa&dKKbWlqH0u%!j0000807ed#QmcCwWfA}Y01yBG08Ib@00000000000HlG70{{SIVRT_HE^uLTbS*G2FfcGJWidE7V=`hfEi__fV=Xi@VmU2gF=RO{Ff=$fW-(?mVmLEqEn_e+FfMa$VQ_GHE^uLTadl;ME@N_IP)h{{000001ONm8cmV(a2m}BC000",
+          "one_hot_encoder_model": "P)h>@6aWAK2mnS7l~P<<nc39<003zL000vJ003=ebYWy+bYU-WVRCdWFfcGMFolmzOT$1AhVTB2Ij75}r7_L52nsEF^12M!i4E=-yR#lF`R|SuMFsIPhnM$xUgiv=!%|>?n4c6T98aW5!u+hfQxhTAOzJ++ZRDFUMoal9$3X);dn$}R!O(VXzw35=yVm`60~h|0a+zZg^G0c<SLk2EN()zKE8!2Nv0d9uYtozTWThfJ`Xh?@40A}8_t6Q%<dYfW`}hfib#xbA&|P$tbIg+49Mb^{!!V&M)IhBK#hXuo(XdFDCajJhzK#8_<y?PR|Ng|7j~*<`)f-St0|XQR000O8Mh=xyuuxcj4gdfE3;+NC7ytkOZDn*}WMOn+FD`Ila&#>)FfcGME@N_IOD;-gU|?WkxH&T_1^`e?0|XQR000O8Mh=xyt0{1vf&l;kFaiJoNB{r;WMOn+FK}UUbS*G2FfcGJV=^~2I5#ylEi*PWHZ3$^IWR3aGh=2gVK6c`VP-fsWHvE1En_e+FfMa$VQ_GHE^uLTadl;MeNtU(+b|SWv^4F*`p^e?GWa0~8d7kDJtwXc`p~|WF-BSYR!UJ~sWX%9L{c`=G_ar1AJ`w#n~#>2!6dlck8|!lSLpKmdrS~vq!SVhPK&ex+WdqN+E@>D|BB!ooMEsZ;DW_yl_l8!dhyXtg!y@A$3J8#2u6KO_s7D?``XN}iU(<-eGB!Qw5bd006_2|qPtSdQdSOm*bn@mvll?KL)7xK_vAI{6-=;)y+`j)qqBGVAFX}>`@oo0<<Y~)4=Jt9Jr@%JBKcY`|0Rtr>Wc0pJmL|eNB<z~RC92qGwHagfAdm0kqam2Q)9v0d?MM9S!ZTr$3mtGsdLMQHw#vYa#eb_1|T+!H>NN~%ptv9?Rt|fDj-P%`Egx2QB?NZOlvk&LR+~ESp|_8X@J6D8M0SR(0IALT_XBrtN6Gy?d^)~n8y*1+uhNu(0MyjgIx8JTq-rnGL@gGEKSoqP0~S}^*$#_q<ZNn9~}8X05AC5K<E<w$_r3S0|XQR000O8Mh=xyjbZDk5&!@I5C8xGO#lD@WMOn+FD`Ila&#>)FfcGMEn_k_H8?jlH7zqXG&U_XVL31@I5T5rEnzS+H(_QtHe@z2H7#Q>FfcB2Zeeh6c`k5aa&dKKbS`6ZV@obdW?*1oVql)0^8MUDD>DF4O928D0~7!N00;m^4wX_|TAA6^0001K0RR9K00000000000001_fdBvi0BvP-VPs)+VJ~oDa&#>)FfcGMP)h*<6ay3h000O8Mh=xyuuxcj4gdfE3;+NC7ytkO0000000000q=5zj003=ebYWy+bYU+paA9(EEif=JFfcA-a$`_S0Rj{Q6aWAK2mnS7l~SuIaGrtz001xo002k;0000000000005+cN&x@>WMOn+FK}UUbS*G2FfcGJV=^~2I5#ylEi*PWHZ3$^IWR3aGh=2gVK6c`VP-fsWHvE1En_e+FfMa$VQ_GHE^uLTadl;MP)h*<6ay3h000O8Mh=xyjbZDk5&!@I5C8xGO#lD@0000000000q=7O6003lRbYU+paA9(EEif=JFfc7+GB-6iH#IdaGd46fEi_>{FfBMUV`eR3Ffun`W;ixvHZe6VV=yo<E^}^SaBz7paA9(Bb!BueV{&6qO9ci10000400aPd0RRB60{{R300"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "b93e688b-df85-4f6b-82d6-d30c42c67c20",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "e0e999a8-5110-4315-a107-a50c202d3c87",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.encode_categorical_0.1",
+      "parameters": {
+        "operator": "One-hot encode",
+        "one_hot_encode_parameters": {
+          "invalid_handling_strategy": "Keep",
+          "drop_last": false,
+          "output_style": "Columns",
+          "input_column": "Area",
+          "output_column": "Area"
+        },
+        "ordinal_encode_parameters": {
+          "invalid_handling_strategy": "Replace with NaN"
+        }
+      },
+      "trained_parameters": {
+        "one_hot_encode_parameters": {
+          "_hash": -1767228197713558300,
+          "string_indexer_model": "P)h>@6aWAK2msQyp;G>V1=-yI003eE000vJ003=ebYWy+bYU-WVRCdWFfcGMFm;YiOT$1EMfd)US*Jsirmg8tbkjvqP~3(`=B5puFW=0FwdB7$Mi2zMz3-lL-$nGALJ(Ww_#nwse}oL4_#};%11Khje2zTY!_F#vfcH*8i$cWFAVe}=Y^!zEwq?8CZ0c2Ah?#!{htb(=UdmFI3o@T}QD!cUDu;iRT~)7^x2RD!O_M8`C$pz)z6h71Px0RA3`H2<_3nFpw7=;cgK}~tt2B1@o%FnL0=$?Cp)gR=@#%{5`XgQU)BDE_X2&@XGyKR3{Brilmx1w?VEgj}LNBK2<_l0u0|XQR000O8(zc;eG|xrQ4gdfE3;+NC7ytkOZDn*}WMOn+FD`Ila&#>)FfcGME@N_IOD;-gU|?WkxXIf14**b00|XQR000O8(zc;e1c}OKn*jg-d;$OfNB{r;WMOn+FK}UUbS*G2FfcGJIWl22VK6i^Eio}RGA%S@WM(a5GB{=}G&5u{H8EjhF*P+cEn_e+FfMa$VQ_GHE^uLTadl;MjZ)o88$lGFS(7O3-cFc>xd;Oh198~x#%&V3iM1kLh)6G_MPxQRYZqrXac5Ey$t#GD(KqoSd>PN0_|ukxH;40m-<fmHcbKEmaX=9HPENYSg``0mEJ7Q2kKz$RXp^l#T>1T>hF4ks;9x*sa2@U9`u5ifjH<9xg+1bUdfzouSzer(@lTaY;-D>ue$+Bn+KkFlUK58j&{mDsbY|>AUR7G<s<3}c#BINdZG@VR$2_*a#)#{+8^}9(+xO|wbMYU5I8C>Chnu%}eQo>2na98@f+^4!L<f0YN+;#HkW&e(izgT2mnuy*DQG<uzVH$4{8M2rwSeSurmQF@S0YzdCeliJk8ilWo+>`%#+I|O<z1d;N+*U7f86jw=9Tou0qBeRmv?eWFO7VAhg!|bigTdHlfufZFo!d(`4Bcx^Z$?q02ynwAiDh70?eAvPv?jpEDdhvWovnnRv-dj1g(vDmg%JBr-LNzg^5bjxZh8c&uKr3q9h8VLD27g3PV5bMR79dc#OftJ8<?R_;-&`O9KQH000080MfRhQteNm1QGxM01yBG08Ib@0AyiwVJ|LlVRCdWFfcGMFfBPUVKreeG&3zRF*Y(SG-PCEEn+e_W-T-`WH2=`VPi2hH8m|`FfcGKb8ca9aCt6pVRCVGWpplMa$`#_N@ieSU}Cs=uvbOy5ql&6P)h*<6ay3h000O8(zc;e{(%MA-2eapVgUdE6951J0000000000q=5hc003=ebYWy+bYU-WVRCdWFfcGMFi=YY0u%!j000080MfRhQZ&y+&<+3q01N;C02lxO00000000000HlEq0RRAPWprU=VRT_HE^uLTbS*G2FfcGKV{&6qO928D0~7!N00;omwxLo4iOOc10RRAe0ssI=00000000000001_fl>hg0AyiwVJ~oDa&#>)FfcGMEjcn_HDNF`Gc7SOHZm<VWMpP7Vlp^pEi^M^Ff}n@V=*-~H7#Q>FfcB2Zeeh6c`k5aa&dKKbWlqH0u%!j000080MfRhQteNm1QGxM01yBG08Ib@00000000000HlFa0{{SIVRT_HE^uLTbS*G2FfcGJIWl22VK6i^Eio}RGA%S@WM(a5GB{=}G&5u{H8EjhF*P+cEn_e+FfMa$VQ_GHE^uLTadl;ME@N_IP)h{{000001ONm8cmV(a&;tMf000",
+          "one_hot_encoder_model": "P)h>@6aWAK2msQyp;FqKb#v4J003zL000vJ003=ebYWy+bYU-WVRCdWFfcGMFpZB*OT$1AhVTB2Ij2iPY+`aPLJJl>d0mF=#0K|^*;x;k{CBq%1wp~f9Nu}KXP7fg7E^)|0>3DXIGsqPi2SOYRWqSvCiUoPALQOo!4MzIuuy?4j*_5@Fg9H?4E50U{cY1$aOIzg(-M3!x2jh42Hm^g)P>87Dd7*L?zi1`xHEN6?WIz9bVn@aGZ+r>0h7QuqfJ!73B9p&@Na0ZCSnd;ppYeI*#%oNE##t}g4Gw@;=dPPIjj{JnlW2>`t_J_{^zZ~KhgTL2kUzC0Z>Z=1QY-O00;omwxLo^aaS`A0000C0000O0001OWprU=VRT_HE^uLTbS*G2FfcGKV{&6lE=p!#U|?b>E}eA?08mQ<1QY-O00;omwxLq&3|$C-0RR9n0ssI=0001FVRT_HaA9(EEif=JFfc7MV`XAvF=I9@Vl-niEi^S{HZ5UeGdV3YHZU?bVlXsiH8n9UV=yo<E^}^SaBz7paA9(Bb!BvYQe8_UF%(T>xAs9Fe8`Z2c_;yk!Wd?pIy)`<pl>1~qP{I6X(w?9Gcz?wSE?=S&+rHOL%g+hQ3MmX+>dkaJvZe1=prVFFwzYP2B$?@0d1}$gqGGrJ0BuATZb6z8eFg#EwTjrr^g$1EX>`F9sQA|AQ&BBx;YX~-qvP%Sv*P$?OW)eNt?Q`4gdsiBf2iNEM?`8hyB10y6pg(ZMTr0eI~z=-oXTW*qeF(8r}A<Z?yUW>;q#Km6?Z;A5vPITQ0@|MDjPi{I4{&s4My-;SrAz-Ti{F_nL!qKaq}``hl0yiCj2ApBqoiO~;ZAn000{ax7%3kUF<)@cW5XqFj_dtpSK7<3CdvBc_mEt#-A{78Q`Bf&8ehoG2=LHqn|5l+aerLsmf~h8mzSScdFf6EvRBujh!KtQ7B+rn6eH6Z1IYac5^ZDRkb6R6kd}B$rAJvrOebRhFh{o+fEO&U*Vv5~*G~%=^235Wow*G!Qz6zw!!DO9KQH000080MfRhQVbMfs}cYJ01yBG08Ib@0AyiwVJ|LlVRCdWFfcGMFfB7<WnyD7V>T^fG-EO?G&N;5En#CbIW03bFfun{Ff?T~H8Cw?FfcGKb8ca9aCt6pVRCVGWpplMa$`#_N@ieSU}C6FFW-IcpOqN^P)h*<6ay3h000O8(zc;e+M0E9)BpegX#oHL6951J0000000000q=5hc003=ebYWy+bYU-WVRCdWFfcGMFi=YY0u%!j000080MfRhQciJKGY$X%01N;C02lxO00000000000HlEh0RRAPWprU=VRT_HE^uLTbS*G2FfcGKV{&6qO928D0~7!N00;omwxLq&3|$C-0RR9n0ssI=00000000000001_fk^=X0AyiwVJ~oDa&#>)FfcGMEi+?fVq-C5HZ5W_V=^r?HDxv}VPi8nEi*PSGB;u{G-Wk4F)d>-FfcB2Zeeh6c`k5aa&dKKbWlqH0u%!j000080MfRhQVbMfs}cYJ01yBG08Ib@00000000000HlF00{{SIVRT_HE^uLTbS*G2FfcGJGh=09V=-ekEn+ldGA%SUWi~BgV>3A|Gd3_XH)1d}Wi>T1En_e+FfMa$VQ_GHE^uLTadl;ME@N_IP)h{{000001ONm8cmV(atOEc5000"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "20093d33-0716-4cfc-9ef9-7ff7c50a0e7b",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "76d65ab3-46ab-4331-97a5-72491c59a514",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.join_tables_0.1",
+      "name": "df_freq_sev_and_org_cols",
+      "parameters": {
+        "left_column": "IDpol",
+        "right_column": "IDpol_0",
+        "join_type": "inner"
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "e0e999a8-5110-4315-a107-a50c202d3c87",
+          "output_name": "default"
+        },
+        {
+          "name": "df",
+          "node_id": "b9db03a0-a55e-42d9-a3d1-ec71250b5546",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "dc3ccfd1-4aba-4ef2-8f59-687bcb50199c",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Drop column",
+        "drop_column_parameters": {
+          "column_to_drop": "VehAge_1"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "76d65ab3-46ab-4331-97a5-72491c59a514",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "e842952f-738e-4d93-8b90-61f4a5554752",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Drop column",
+        "drop_column_parameters": {
+          "column_to_drop": "DrivAge_1"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "dc3ccfd1-4aba-4ef2-8f59-687bcb50199c",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "46170d74-610f-427c-99a6-421f3c40e82e",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Drop column",
+        "drop_column_parameters": {
+          "column_to_drop": "Density_1"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "e842952f-738e-4d93-8b90-61f4a5554752",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "f8e6dc3c-10bf-410c-9e42-a4e1a66e573f",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Drop column",
+        "drop_column_parameters": {
+          "column_to_drop": "ClaimNb_1"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "46170d74-610f-427c-99a6-421f3c40e82e",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "11ec2997-173c-4946-a439-db8d1f1273b3",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Drop column",
+        "drop_column_parameters": {
+          "column_to_drop": "Exposure_1"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "f8e6dc3c-10bf-410c-9e42-a4e1a66e573f",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "6f99bbd8-96de-49d0-ae54-3621918a7c9a",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Drop column",
+        "drop_column_parameters": {
+          "column_to_drop": "BonusMalus_1"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "11ec2997-173c-4946-a439-db8d1f1273b3",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "75ba1668-5740-4807-88e6-1ac09c84d518",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Drop column",
+        "drop_column_parameters": {
+          "column_to_drop": "IDpol_0"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "6f99bbd8-96de-49d0-ae54-3621918a7c9a",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "6cbec79a-3a49-4294-9d00-591e555ecb53",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Drop column",
+        "drop_column_parameters": {
+          "column_to_drop": "IDpol_1"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "75ba1668-5740-4807-88e6-1ac09c84d518",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "62abe2dc-5e7b-4e12-8467-57e184b7796a",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Rename column",
+        "rename_column_parameters": {
+          "input_column": "VehAge_0",
+          "new_name": "VehAge"
+        },
+        "drop_column_parameters": {}
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "6cbec79a-3a49-4294-9d00-591e555ecb53",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "403f3b3c-5666-4114-94da-3f8d6295c022",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Rename column",
+        "rename_column_parameters": {
+          "input_column": "DrivAge_0",
+          "new_name": "DrivAge"
+        },
+        "drop_column_parameters": {}
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "62abe2dc-5e7b-4e12-8467-57e184b7796a",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "64f54ddf-4556-4d9c-88b3-0377573d7ac6",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Rename column",
+        "rename_column_parameters": {
+          "input_column": "Density_0",
+          "new_name": "Density"
+        },
+        "drop_column_parameters": {}
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "403f3b3c-5666-4114-94da-3f8d6295c022",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "da6af200-f005-49d1-9853-4d2dd8bf17b2",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Rename column",
+        "rename_column_parameters": {
+          "input_column": "ClaimNb_0",
+          "new_name": "ClaimNb"
+        },
+        "drop_column_parameters": {}
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "64f54ddf-4556-4d9c-88b3-0377573d7ac6",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "df2fe2a5-58db-4273-ba05-315bd054769f",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Rename column",
+        "rename_column_parameters": {
+          "input_column": "Exposure_0",
+          "new_name": "Exposure"
+        },
+        "drop_column_parameters": {}
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "da6af200-f005-49d1-9853-4d2dd8bf17b2",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "a6f1e409-578b-4048-ab20-57a391be33b4",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Rename column",
+        "rename_column_parameters": {
+          "input_column": "ClaimAmount_0",
+          "new_name": "ClaimAmount"
+        },
+        "drop_column_parameters": {}
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "df2fe2a5-58db-4273-ba05-315bd054769f",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "b1659567-2e31-4857-a6fe-6ad537bf4ac0",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Drop column",
+        "drop_column_parameters": {
+          "column_to_drop": "ClaimAmount_1"
+        }
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "a6f1e409-578b-4048-ab20-57a391be33b4",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "95b11c5e-0e03-47c7-bff3-e18d1d0c8ee1",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Rename column",
+        "rename_column_parameters": {
+          "input_column": "BonusMalus_0",
+          "new_name": "BonusMalus"
+        },
+        "drop_column_parameters": {}
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "b1659567-2e31-4857-a6fe-6ad537bf4ac0",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "0e5fcf7d-7d76-42d1-a808-a9a5a2059cee",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Move column",
+        "move_column_parameters": {
+          "move_type": "Move after",
+          "move_after_parameters": {
+            "column_to_move": "VehBrand_B1",
+            "target_column": "DrivAge_bin51_100"
+          },
+          "move_before_parameters": {},
+          "move_to_start_parameters": {}
+        },
+        "drop_column_parameters": {}
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "95b11c5e-0e03-47c7-bff3-e18d1d0c8ee1",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "node_id": "6e10f030-cc52-474b-b483-da3cf3a568de",
+      "type": "TRANSFORM",
+      "operator": "sagemaker.spark.manage_columns_0.1",
+      "parameters": {
+        "operator": "Move column",
+        "move_column_parameters": {
+          "move_type": "Move after",
+          "move_after_parameters": {
+            "target_column": "VehBrand_B1",
+            "column_to_move": "VehBrand_B10"
+          },
+          "move_to_start_parameters": {}
+        },
+        "drop_column_parameters": {}
+      },
+      "inputs": [
+        {
+          "name": "df",
+          "node_id": "0e5fcf7d-7d76-42d1-a808-a9a5a2059cee",
+          "output_name": "default"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "default"
+        }
+      ]
+    }
+  ]
+}
